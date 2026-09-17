@@ -35,9 +35,7 @@ export default function LoginPage() {
           <div className="brand-mark">RA</div>
           <div className="brand-copy">
             <strong style={{ color: "var(--rzp-navy)" }}>Revive AI</strong>
-            <span style={{ color: "var(--rzp-muted)" }}>
-              Geeks2Code · Merchant sign in
-            </span>
+            <span style={{ color: "var(--rzp-muted)" }}>Merchant sign in</span>
           </div>
         </div>
         <h1>Welcome back</h1>

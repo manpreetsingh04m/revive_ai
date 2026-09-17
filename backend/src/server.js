@@ -3,6 +3,7 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const { connectDb } = require("./config/db");
+const apiRouter = require("./routes/api");
 const authRouter = require("./routes/auth");
 
 const app = express();
@@ -32,19 +33,11 @@ app.get("/health", (_req, res) => {
     ok: true,
     service: "revive-ai",
     hackathon: "geeks2code",
-    phase: "auth",
   });
 });
 
 app.use("/api/auth", authRouter);
-
-// Recovery API (invoices, batch, metrics) lands in Phase 3+
-app.use("/api", (_req, res) => {
-  res.status(501).json({
-    error: "Recovery API not mounted yet",
-    hint: "Phase 3 adds the recovery engine and /api routes",
-  });
-});
+app.use("/api", apiRouter);
 
 app.use((err, _req, res, _next) => {
   console.error("[server] unhandled", err);
@@ -55,7 +48,6 @@ async function start() {
   await connectDb();
   app.listen(PORT, () => {
     console.log(`[server] Revive AI listening on http://localhost:${PORT}`);
-    console.log(`[server] Phase: foundation + auth (recovery engine next)`);
   });
 }
 

@@ -18,8 +18,8 @@ Merchant UI uses a Razorpay-inspired fintech console (navy `#012652`, blue `#0D9
 |-------|--------|--------|
 | 1 | Foundation — models, Zod schemas, guardrail tests, UI shell | **Done** |
 | 2 | Auth — JWT, seed merchant, login page | **Done** |
-| 3 | Recovery engine — AI, batch, WhatsApp / links / voice, APIs | Next |
-| 4 | Dashboard — KPIs, invoices, audit feed, run-batch | Planned |
+| 3 | Recovery engine — AI, batch, WhatsApp / links / voice, APIs | **Done** |
+| 4 | Dashboard — KPIs, invoices, audit feed, run-batch | **Done** |
 
 ---
 

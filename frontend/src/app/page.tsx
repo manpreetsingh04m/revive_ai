@@ -1,100 +1,193 @@
-export default function HomePage() {
+"use client";
+
+import { Suspense, useCallback, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { api } from "@/lib/api";
+import type { AuditLog, Invoice, Metrics } from "@/lib/types";
+import { AuthGate } from "@/components/AuthGate";
+import { AppShell } from "@/components/AppShell";
+import { KpiStrip } from "@/components/KpiStrip";
+import { RunBatchPanel } from "@/components/RunBatchPanel";
+import { AuditTable } from "@/components/AuditTable";
+import { InvoicePanel } from "@/components/InvoicePanel";
+import { AddInvoiceModal } from "@/components/AddInvoiceModal";
+
+function DashboardInner() {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  const showAuditOnly = searchParams.get("tab") === "audit";
+
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [logs, setLogs] = useState<AuditLog[]>([]);
+  const [invoices, setInvoices] = useState<Invoice[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [filter, setFilter] = useState("");
+  const [running, setRunning] = useState(false);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [toast, setToast] = useState<{ type: "ok" | "error"; text: string } | null>(
+    null
+  );
+
+  const refresh = useCallback(async () => {
+    const [m, audit, inv] = await Promise.all([
+      api.metrics(),
+      api.auditLogs(page, 12, filter || undefined),
+      api.invoices(1, 8),
+    ]);
+    setMetrics(m);
+    setLogs(audit.data);
+    setTotalPages(audit.totalPages || 1);
+    setInvoices(inv.data);
+  }, [page, filter]);
+
+  useEffect(() => {
+    refresh().catch((err) =>
+      setToast({ type: "error", text: err.message || "Failed to load dashboard" })
+    );
+  }, [refresh]);
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      refresh().catch(() => undefined);
+    }, 12000);
+    return () => clearInterval(id);
+  }, [refresh]);
+
+  async function handleRunBatch() {
+    setRunning(true);
+    setToast(null);
+    try {
+      const result = await api.runBatch();
+      setToast({
+        type: "ok",
+        text: `Batch complete — ${result.summary.success} executed, ${result.summary.blocked} blocked across ${result.summary.processed} invoices.`,
+      });
+      setPage(1);
+      await refresh();
+      router.replace("/?tab=audit");
+    } catch (err) {
+      setToast({
+        type: "error",
+        text: err instanceof Error ? err.message : "Batch failed",
+      });
+    } finally {
+      setRunning(false);
+    }
+  }
+
+  async function handleCreateInvoice(payload: Record<string, unknown>) {
+    setSaving(true);
+    try {
+      await api.createInvoice(payload);
+      setModalOpen(false);
+      setToast({ type: "ok", text: "Invoice added to the recovery ledger." });
+      await refresh();
+    } catch (err) {
+      setToast({
+        type: "error",
+        text: err instanceof Error ? err.message : "Could not create invoice",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
+
   return (
-    <main
-      style={{
-        minHeight: "100vh",
-        padding: "3rem 1.5rem",
-        background:
-          "linear-gradient(160deg, #012652 0%, #0a3a6e 45%, #0D94FB22 100%)",
-        color: "#fff",
-        fontFamily: "inherit",
-      }}
-    >
-      <div style={{ maxWidth: 720, margin: "0 auto" }}>
-        <p
-          style={{
-            opacity: 0.75,
-            letterSpacing: "0.08em",
-            fontSize: 12,
-            fontWeight: 600,
-          }}
-        >
-          GEEKS2CODE · MENTORING ROUND
-        </p>
-        <h1
-          style={{
-            fontSize: "2.4rem",
-            margin: "0.5rem 0 0.75rem",
-            fontWeight: 800,
-          }}
-        >
-          Revive AI
-        </h1>
-        <p
-          style={{
-            fontSize: "1.05rem",
-            lineHeight: 1.6,
-            opacity: 0.9,
-            maxWidth: 560,
-          }}
-        >
-          Autonomous, <strong>bounded</strong> AI revenue recovery. Phases 1–2
-          are in: data model, Zod guardrails, JWT auth, and merchant login.
-        </p>
+    <AppShell>
+      <main className="main">
+        <header className="topbar">
+          <div>
+            <h1>
+              {showAuditOnly
+                ? "AI decision audit"
+                : "Merchant recovery dashboard"}
+            </h1>
+            <p>
+              Detect overdue and failed B2B payments, diagnose with AI, and execute
+              only bounded recovery actions.
+            </p>
+          </div>
+          <div className="topbar-actions">
+            <button
+              type="button"
+              className="btn btn-secondary"
+              onClick={() => refresh()}
+            >
+              Refresh
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              onClick={handleRunBatch}
+              disabled={running}
+            >
+              {running ? "Running…" : "Run AI Batch"}
+            </button>
+          </div>
+        </header>
 
-        <section
-          style={{
-            marginTop: "2.5rem",
-            padding: "1.25rem 1.5rem",
-            background: "rgba(255,255,255,0.08)",
-            borderRadius: 12,
-            border: "1px solid rgba(255,255,255,0.12)",
-          }}
-        >
-          <h2 style={{ fontSize: "1rem", margin: "0 0 0.75rem" }}>
-            Show mentors now
-          </h2>
-          <ul
-            style={{
-              margin: 0,
-              paddingLeft: "1.2rem",
-              lineHeight: 1.8,
-              opacity: 0.95,
-            }}
-          >
-            <li>
-              <code>MENTORING.md</code> — pitch + phase checklist
-            </li>
-            <li>
-              Guardrails: <code>schemas/aiDecision.js</code> +{" "}
-              <code>test/guardrails.test.js</code>
-            </li>
-            <li>
-              Auth: <code>/login</code> → JWT → protected merchant session
-            </li>
-            <li>
-              Next: Phase 3 recovery engine (batch + audit trail)
-            </li>
-          </ul>
-        </section>
+        {toast && (
+          <div className={`toast ${toast.type === "error" ? "error" : ""}`}>
+            {toast.text}
+          </div>
+        )}
 
-        <p style={{ marginTop: "1.75rem" }}>
-          <a
-            href="/login"
-            style={{
-              display: "inline-block",
-              padding: "0.7rem 1.25rem",
-              background: "#0D94FB",
-              color: "#fff",
-              borderRadius: 8,
-              fontWeight: 600,
-              textDecoration: "none",
+        {!showAuditOnly && (
+          <>
+            <KpiStrip metrics={metrics} />
+            <div className="panel-grid">
+              <RunBatchPanel
+                metrics={metrics}
+                running={running}
+                onRun={handleRunBatch}
+              />
+              <InvoicePanel
+                invoices={invoices}
+                onAdd={() => setModalOpen(true)}
+              />
+            </div>
+          </>
+        )}
+
+        <div id="audit">
+          <AuditTable
+            logs={logs}
+            page={page}
+            totalPages={totalPages}
+            filter={filter}
+            onFilter={(value) => {
+              setFilter(value);
+              setPage(1);
             }}
-          >
-            Open merchant login
-          </a>
-        </p>
-      </div>
-    </main>
+            onPage={setPage}
+          />
+        </div>
+      </main>
+
+      <AddInvoiceModal
+        open={modalOpen}
+        busy={saving}
+        onClose={() => setModalOpen(false)}
+        onSubmit={handleCreateInvoice}
+      />
+    </AppShell>
+  );
+}
+
+export default function DashboardPage() {
+  return (
+    <AuthGate>
+      <Suspense
+        fallback={
+          <div className="login-shell">
+            <div className="muted">Loading dashboard…</div>
+          </div>
+        }
+      >
+        <DashboardInner />
+      </Suspense>
+    </AuthGate>
   );
 }

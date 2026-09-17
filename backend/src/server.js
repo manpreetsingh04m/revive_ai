@@ -1,0 +1,69 @@
+require("dotenv").config();
+
+const express = require("express");
+const cors = require("cors");
+const { connectDb } = require("./config/db");
+const authRouter = require("./routes/auth");
+
+const app = express();
+const PORT = Number(process.env.PORT || 4000);
+
+app.use(
+  cors({
+    origin: true,
+    credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"],
+  })
+);
+app.use(express.json());
+
+app.use(async (req, res, next) => {
+  try {
+    await connectDb();
+    next();
+  } catch (err) {
+    console.error("[db] connection failed", err.message);
+    res.status(503).json({ error: "Database unavailable", detail: err.message });
+  }
+});
+
+app.get("/health", (_req, res) => {
+  res.json({
+    ok: true,
+    service: "revive-ai",
+    hackathon: "geeks2code",
+    phase: "auth",
+  });
+});
+
+app.use("/api/auth", authRouter);
+
+// Recovery API (invoices, batch, metrics) lands in Phase 3+
+app.use("/api", (_req, res) => {
+  res.status(501).json({
+    error: "Recovery API not mounted yet",
+    hint: "Phase 3 adds the recovery engine and /api routes",
+  });
+});
+
+app.use((err, _req, res, _next) => {
+  console.error("[server] unhandled", err);
+  res.status(500).json({ error: "Internal server error" });
+});
+
+async function start() {
+  await connectDb();
+  app.listen(PORT, () => {
+    console.log(`[server] Revive AI listening on http://localhost:${PORT}`);
+    console.log(`[server] Phase: foundation + auth (recovery engine next)`);
+  });
+}
+
+if (require.main === module) {
+  start().catch((err) => {
+    console.error("[server] failed to start", err);
+    process.exit(1);
+  });
+}
+
+module.exports = app;

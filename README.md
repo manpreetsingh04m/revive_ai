@@ -1,10 +1,25 @@
-# Razorpay Revive AI
+# Revive AI
 
-**Razorpay Revive AI** — autonomous, bounded **AI revenue recovery** for B2B merchants. Built for the **Razorpay Buildathon**.
+**Revive AI** — autonomous, bounded **AI revenue recovery** for B2B merchants.
 
-Detects overdue invoices and failed payments, diagnoses root cause with an LLM, predicts recovery probability, generates **Razorpay payment links**, and executes only **bounded** recovery actions (WhatsApp, voice fallback, card retry) with Zod validation, confidence guardrails, JWT-protected APIs, and an immutable audit trail.
+Prepared for the **Geeks2Code** hackathon (**mentoring round**): we ship in clear phases so mentors can review architecture, guardrails, and demos without noise.
 
-Merchant UI follows a Razorpay-inspired fintech console (navy `#012652`, blue `#0D94FB`).
+Detects overdue invoices and failed payments, diagnoses root cause with an LLM, predicts recovery probability, generates payment links, and executes only **bounded** recovery actions (WhatsApp, voice fallback, card retry) with Zod validation, confidence guardrails, JWT-protected APIs, and an immutable audit trail.
+
+Merchant UI uses a Razorpay-inspired fintech console (navy `#012652`, blue `#0D94FB`).
+
+> **Mentors:** start with [`MENTORING.md`](./MENTORING.md) — pitch, phase checklist, and which files to open.
+
+---
+
+## Mentoring build status
+
+| Phase | Focus | Status |
+|-------|--------|--------|
+| 1 | Foundation — models, Zod schemas, guardrail tests, UI shell | **Done** |
+| 2 | Auth — JWT, seed merchant, login page | **Done** |
+| 3 | Recovery engine — AI, batch, WhatsApp / links / voice, APIs | Next |
+| 4 | Dashboard — KPIs, invoices, audit feed, run-batch | Planned |
 
 ---
 
@@ -85,8 +100,8 @@ Merchants lose cash to failed cards, overdue bank transfers, promise-to-pay dela
 ### 1. Clone & Install Dependencies
 
 ```bash
-git clone https://github.com/manpreetsingh04m/razorpay-revive-ai.git
-cd razorpay-revive-ai
+git clone <your-revive-ai-repo-url>
+cd revive_ai
 
 # Install Backend
 cd backend && npm install
@@ -106,7 +121,7 @@ Set at least:
 
 ```bash
 PORT=4000
-MONGODB_URI=mongodb://127.0.0.1:27017/auto_recover_ai
+MONGODB_URI=mongodb://127.0.0.1:27017/revive_ai
 JWT_SECRET=change-me-to-a-long-random-string
 JWT_EXPIRES_IN=7d
 
@@ -133,9 +148,8 @@ NEXT_PUBLIC_API_URL=http://localhost:4000
 ```bash
 cd backend
 npm run seed              # synthetic invoices + default merchant user
-npm run import:ibm        # optional IBM AR CSV import
-# npm run import:ibm -- --replace --limit=80
-npm run run-batch         # optional CLI recovery batch
+# npm run import:ibm      # Phase 3+ — IBM AR CSV import
+# npm run run-batch       # Phase 3+ — CLI recovery batch
 ```
 
 **Default login (from seed)**
@@ -153,7 +167,9 @@ cd backend && npm run dev          # http://localhost:4000
 cd frontend && npm run dev         # http://localhost:3000
 ```
 
-Open http://localhost:3000 → sign in → dashboard / invoices / audit trail.
+Open http://localhost:3000 → sign in → (dashboard lands in Phase 4).
+
+> **Note:** Through Phase 2, `/api` recovery routes return `501`. Auth (`/api/auth/*`) and `/health` work.
 
 ---
 
